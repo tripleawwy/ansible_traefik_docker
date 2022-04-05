@@ -1,0 +1,5 @@
+---
+# tasks file for traefik
+- name: Traefik
+  import_tasks: docker_traefik.yml
+  when: setup_traefik | bool
