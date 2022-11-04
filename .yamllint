@@ -1,0 +1,14 @@
+---
+extends: default
+
+# ignore-from-file: .gitignore
+ignore: |
+  .vscode/
+
+rules:
+  line-length:
+    max: 120
+
+  truthy:
+    allowed-values: ["true", "false", "yes", "no"]
+    check-keys: true
