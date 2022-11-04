@@ -1,0 +1,28 @@
+---
+# tasks file to provision dockerized Traefik
+
+- name: Create Docker bridge network for Traefik
+  community.docker.docker_network:
+    name: "{{ traefik_service_name }}"
+    driver: bridge
+    state: present
+
+- name: Pull Traefik docker image
+  community.docker.docker_image:
+    name: "{{ traefik_image }}"
+    source: pull
+    force_source: true
+
+- name: Start Traefik service via Docker
+  community.general.docker_container:
+    name: "{{ traefik_service_name }}"
+    image: "{{ traefik_image }}"
+    networks: "{{ traefik_networks }}"
+    published_ports: "{{ traefik_ports }}"
+    mounts: "{{ traefik_mounts }}"
+    command: "{{ cli_commands }}"
+    labels: "{{ traefik_labels }}"
+    comparisons:
+      '*': strict
+      labels: allow_more_present
+    restart_policy: unless-stopped

@@ -1,11 +1,9 @@
 ---
 # defaults file for traefik
-setup_traefik: true
-traefik_docker_service_name: "traefik"
-traefik_docker_network_name: "{{ traefik_docker_service_name }}"
-traefik_docker_image: "{{ traefik_docker_image_name }}:{{ traefik_docker_image_tag }}"
-traefik_docker_image_name: "traefik"
-traefik_docker_image_tag: "2.4"
+traefik_service_name: "traefik"
+traefik_image: "{{ traefik_image_name }}:{{ traefik_image_tag }}"
+traefik_image_name: "traefik"
+traefik_image_tag: "2.9"
 cli_commands:
   - "--global.checknewversion=false"
   - "--entrypoints.web.address=:80"
@@ -26,17 +24,20 @@ cli_commands:
   - "--api.dashboard=true"
   - "--log.level=debug"
 
-traefik_docker_ports:
+traefik_networks:
+  - name: "{{ traefik_service_name }}"
+
+traefik_ports:
   - "80:80"
   - "443:443"
-traefik_docker_api_rule: "Host(`traefik.{{ inventory_hostname }}`)"
-traefik_docker_labels:
+traefik_api_rule: "Host(`traefik.{{ inventory_hostname }}`)"
+traefik_labels:
   traefik.enable: "true"
-  traefik.http.routers.traefik_api.rule: "{{ traefik_docker_api_rule }}"
+  traefik.http.routers.traefik_api.rule: "{{ traefik_api_rule }}"
   traefik.http.routers.traefik_api.entrypoints: "web_secure"
   traefik.http.routers.traefik_api.service: "api@internal"
 
-traefik_docker_mounts:
+traefik_mounts:
   - source: /var/run/docker.sock
     target: /var/run/docker.sock
     type: bind

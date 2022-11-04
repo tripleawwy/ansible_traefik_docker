@@ -1,5 +1,7 @@
 ---
 # tasks file for traefik
-- name: Traefik
-  import_tasks: docker_traefik.yml
-  when: setup_traefik | bool
+- name: Tasks to prepare the host
+  ansible.builtin.import_tasks: prepare_host.yml
+
+- name: Tasks to provision the Traefik proxy
+  ansible.builtin.import_tasks: provision_traefik.yml
