@@ -9,6 +9,6 @@ platforms:
 provisioner:
   name: ansible
   options:
-    D: True
+    D: true
 verifier:
   name: ansible
