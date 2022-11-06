@@ -20,7 +20,7 @@
     networks: "{{ traefik_networks }}"
     published_ports: "{{ traefik_ports }}"
     mounts: "{{ traefik_mounts }}"
-    command: "{{ cli_commands }}"
+    command: "{{ traefik_cli_commands }}"
     labels: "{{ traefik_labels }}"
     comparisons:
       '*': strict
