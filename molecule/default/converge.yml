@@ -1,0 +1,17 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  vars:
+    traefik_dashboard_enabled: "true"
+    traefik_log_level: "DEBUG"
+    traefik_labels:
+      traefik.enable: "true"
+      traefik.http.routers.traefik_api.rule: "{{ traefik_api_rule }}"
+      traefik.http.routers.traefik_api.entrypoints: "web_secure"
+      traefik.http.routers.traefik_api.service: "api@internal"
+      traefik.http.routers.traefik_api.tls: "true"
+  tasks:
+    - name: "Include ansible_traefik"
+      ansible.builtin.include_role:
+        name: "ansible_traefik"
