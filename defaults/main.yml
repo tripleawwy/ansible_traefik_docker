@@ -1,5 +1,10 @@
 ---
 # defaults file for traefik
+
+# file/directory variabls
+traefik_source_base_path: "/etc/traefik"
+traefik_source_acme_path: "{{ traefik_source_base_path }}/acme.json"
+
 traefik_service_name: "traefik"
 traefik_image: "{{ traefik_image_name }}:{{ traefik_image_tag }}"
 traefik_image_name: "traefik"
@@ -41,6 +46,7 @@ traefik_mounts:
   - source: /var/run/docker.sock
     target: /var/run/docker.sock
     type: bind
-  - source: /root/acme.json
+    read_only: true
+  - source: "{{ traefik_source_acme_path }}"
     target: /acme.json
     type: bind
