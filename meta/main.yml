@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   author: tripleawwy
-  role_name: ansible_traefik
+  role_name: traefik_docker
   namespace: tripleawwy
   description: This role provision an instance of Traefik
   license: MIT

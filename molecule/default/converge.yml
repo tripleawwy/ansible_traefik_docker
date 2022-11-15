@@ -12,6 +12,6 @@
       traefik.http.routers.traefik_api.service: "api@internal"
       traefik.http.routers.traefik_api.tls: "true"
   tasks:
-    - name: "Include ansible_traefik"
+    - name: "Include ansible_traefik_docker"
       ansible.builtin.include_role:
-        name: "ansible_traefik"
+        name: "ansible_traefik_docker"
