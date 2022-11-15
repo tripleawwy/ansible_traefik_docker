@@ -6,6 +6,15 @@
   become: true
   gather_facts: false
   tasks:
-  - name: Example assertion
+  - name: Register Docker container status
+    community.docker.docker_container_info:
+      name: traefik
+    register: container_info
+  - name: Traefik Docker container assertion
     ansible.builtin.assert:
-      that: true
+      that:
+        - "container_info.exists"
+        - "container_info.container.State.Status == 'running'"
+        - "container_info.container.State.Running"
+      success_msg: "container OK"
+      fail_msg: "container NOT OK"
