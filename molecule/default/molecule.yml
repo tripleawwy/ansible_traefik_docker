@@ -12,3 +12,7 @@ provisioner:
     D: true
 verifier:
   name: ansible
+lint: |
+  set -e
+  yamllint .
+  ansible-lint
