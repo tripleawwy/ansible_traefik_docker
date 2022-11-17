@@ -1,13 +1,37 @@
 ---
 # defaults file for traefik
-setup_traefik: true
-traefik_docker_service_name: "traefik"
-traefik_docker_network_name: "{{ traefik_docker_service_name }}"
-traefik_docker_image: "{{ traefik_docker_image_name }}:{{ traefik_docker_image_tag }}"
-traefik_docker_image_name: "traefik"
-traefik_docker_image_tag: "2.4"
-cli_commands:
-  - "--global.checknewversion=false"
+
+# file/directory variabls
+traefik_source_base_path: "/etc/traefik"
+traefik_source_acme_path: "{{ traefik_source_base_path }}/acme.json"
+
+# configuration variables
+traefik_checknewversion: "false"
+traefik_sendanonymoususage: "false"
+traefik_dashboard_enabled: "false"
+traefik_log_level: "ERROR"
+traefik_pilot_dashboard: "false"
+traefik_docker_provider:
+  watch: "true"
+  network: "{{ traefik_service_name }}"
+  exposedByDefault: "false"
+  endpoint: "unix:///var/run/docker.sock"
+
+# container variables
+traefik_service_name: "traefik"
+traefik_image: "{{ traefik_image_name }}:{{ traefik_image_tag }}"
+traefik_image_name: "traefik"
+traefik_image_tag: "2.9"
+traefik_cli_base:
+  - "--global.checknewversion={{ traefik_checknewversion }}"
+  - "--global.sendanonymoususage={{ traefik_sendanonymoususage }}"
+  - "--api.dashboard={{ traefik_dashboard_enabled }}"
+  - "--log.level={{ traefik_log_level }}"
+  - "--pilot.dashboard={{ traefik_pilot_dashboard }}"
+  - "--providers.docker.watch={{ traefik_docker_provider.watch }}"
+  - "--providers.docker.network={{ traefik_docker_provider.network }}"
+  - "--providers.docker.exposedByDefault={{ traefik_docker_provider.exposedByDefault }}"
+  - "--providers.docker.endpoint={{ traefik_docker_provider.endpoint }}"
   - "--entrypoints.web.address=:80"
   - "--entrypoints.web.http.redirections.entrypoint.to=:443"
   - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
@@ -17,29 +41,34 @@ cli_commands:
   - "--certificatesresolvers.live=true"
   - "--certificatesresolvers.live.acme.httpchallenge=true"
   - "--certificatesresolvers.live.acme.httpchallenge.entrypoint=web"
-  - "--providers.docker"
-  - "--providers.docker.watch=true"
-  - "--providers.docker.network={{ docker_traefik_network_name }}"
-  - "--providers.docker.exposedByDefault=false"
-  - "--providers.docker.endpoint=unix:///var/run/docker.sock"
-  - "--pilot.dashboard=false"
-  - "--api.dashboard=true"
-  - "--log.level=debug"
 
-traefik_docker_ports:
+# https://doc.traefik.io/traefik/reference/static-configuration/cli/
+traefik_cli_commands_extension: []
+traefik_custom_cli_commands: []
+traefik_cli_commands: "{{
+  traefik_cli_base + traefik_cli_commands_extension
+  if traefik_custom_cli_commands | length == 0 else traefik_custom_cli_commands
+  }}"
+
+traefik_networks:
+  - name: "{{ traefik_service_name }}"
+
+traefik_ports:
   - "80:80"
   - "443:443"
-traefik_docker_api_rule: "Host(`traefik.{{ inventory_hostname }}`)"
-traefik_docker_labels:
+
+traefik_api_rule: "Host(`traefik.{{ inventory_hostname }}`)"
+traefik_labels:
   traefik.enable: "true"
-  traefik.http.routers.traefik_api.rule: "{{ traefik_docker_api_rule }}"
+  traefik.http.routers.traefik_api.rule: "{{ traefik_api_rule }}"
   traefik.http.routers.traefik_api.entrypoints: "web_secure"
   traefik.http.routers.traefik_api.service: "api@internal"
 
-traefik_docker_mounts:
+traefik_mounts:
   - source: /var/run/docker.sock
     target: /var/run/docker.sock
     type: bind
-  - source: /root/acme.json
+    read_only: true
+  - source: "{{ traefik_source_acme_path }}"
     target: /acme.json
     type: bind

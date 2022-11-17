@@ -1,0 +1,19 @@
+---
+# tasks file to prepare the Traefik host
+- name: Ensure mounting point for traefik exists
+  ansible.builtin.file:
+    path: "{{ traefik_source_base_path }}"
+    state: directory
+    mode: 0755
+    owner: root
+    group: root
+
+- name: Create acme.json file if not existing
+  ansible.builtin.file:
+    path: "{{ traefik_source_acme_path }}"
+    state: touch
+    mode: 0600
+    owner: root
+    group: root
+    modification_time: preserve
+    access_time: preserve
