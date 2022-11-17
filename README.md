@@ -43,14 +43,22 @@ The remote host needs to have Docker installed. No other requirements are necess
 
 <!-- USAGE -->
 ## Usage
-You'll need to download the Ansible role e.g. by using the requirements file. This role will be uploaded to Ansible Galaxy for easier usage.
-```yaml
-# requirements.yml
-  - name: traefik_docker
-    src: "https://github.com/\
-      tripleawwy/ansible_traefik_docker.git"
-    version: master
-```
+You'll need to install the Ansible role.
+
+- e.g. by using the requirements file.
+
+  ```yaml
+  # requirements.yml
+    - src: tripleawwy.traefik_docker
+      version: v1.0.0
+  ```
+  ```bash
+  ansible-galaxy install -r requirements.yml
+  ```
+- or via Ansible Galaxy directly
+  ```bash
+  ansible-galaxy install tripleawwy.traefik_docker
+  ```
 
 ### Example Playbook
 The following Playbook provisions Traefik with a default Traefik certificate on localhost
@@ -71,7 +79,7 @@ The following Playbook provisions Traefik with a default Traefik certificate on 
   tasks:
     - name: "Include traefik_docker role"
       ansible.builtin.include_role:
-        name: "traefik_docker"
+        name: "tripleawwy.traefik_docker"
 ```
 
 <!-- Testing -->
