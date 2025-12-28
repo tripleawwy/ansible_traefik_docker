@@ -2,14 +2,30 @@
 dependency:
   name: galaxy
 driver:
-  name: vagrant
+  name: docker
 platforms:
-  - name: instance
-    box: debian/bullseye64
+  - name: traefik-debian12
+    image: traefik-molecule-debian12:latest
+    dockerfile: Dockerfile
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    command: /lib/systemd/systemd
+    tmpfs:
+      - /run
+      - /run/lock
+    capabilities:
+      - SYS_ADMIN
+    security_opts:
+      - seccomp=unconfined
+    pre_build_image: false
 provisioner:
   name: ansible
   options:
     D: true
+  env:
+    ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/.."
 verifier:
   name: ansible
 lint: |

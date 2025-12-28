@@ -1,20 +1,46 @@
 ---
-# This is an example playbook to execute Ansible tests.
+# Verification playbook for Traefik role
 
 - name: Verify
   hosts: all
   become: true
   gather_facts: false
   tasks:
-  - name: Register Docker container status
-    community.docker.docker_container_info:
-      name: traefik
-    register: container_info
-  - name: Traefik Docker container assertion
-    ansible.builtin.assert:
-      that:
-        - "container_info.exists"
-        - "container_info.container.State.Status == 'running'"
-        - "container_info.container.State.Running"
-      success_msg: "container OK"
-      fail_msg: "container NOT OK"
+    - name: Check Traefik Docker container status
+      community.docker.docker_container_info:
+        name: traefik
+      register: container_info
+
+    - name: Assert Traefik container is running
+      ansible.builtin.assert:
+        that:
+          - "container_info.exists"
+          - "container_info.container.State.Status == 'running'"
+          - "container_info.container.State.Running"
+        success_msg: "Traefik container is running"
+        fail_msg: "Traefik container is NOT running"
+
+    - name: Check Traefik Docker network exists
+      community.docker.docker_network_info:
+        name: traefik
+      register: network_info
+
+    - name: Assert Traefik network exists
+      ansible.builtin.assert:
+        that:
+          - "network_info.exists"
+        success_msg: "Traefik network exists"
+        fail_msg: "Traefik network does NOT exist"
+
+    - name: Check acme.json file exists
+      ansible.builtin.stat:
+        path: /etc/traefik/acme.json
+      register: acme_file
+
+    - name: Assert acme.json file permissions
+      ansible.builtin.assert:
+        that:
+          - "acme_file.stat.exists"
+          - "acme_file.stat.mode == '0600'"
+        success_msg: "acme.json file exists with correct permissions"
+        fail_msg: "acme.json file missing or wrong permissions"

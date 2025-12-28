@@ -1,0 +1,16 @@
+# Ansible Role Testing Dependencies
+# Updated: 2025-12-28
+
+# Molecule testing framework
+molecule>=25.0.0
+molecule-plugins[docker]>=23.5.0
+
+# Ansible
+ansible-core>=2.13.5
+
+# Linting tools
+ansible-lint>=25.0.0
+yamllint>=1.28.0
+
+# Docker Python library (required for Ansible community.docker collection)
+docker>=7.0.0

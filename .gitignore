@@ -1,2 +1,35 @@
 # IDE files
 .vscode/
+
+# Python virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / packaging
+.eggs/
+*.egg-info/
+dist/
+build/
+
+# Testing
+.pytest_cache/
+.molecule/
+.cache/
+
+# Vagrant
+.vagrant/
+
+# Ansible runtime
+.ansible/
+
+# Claude Code
+.claude/

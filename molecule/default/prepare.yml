@@ -2,63 +2,36 @@
 - name: Prepare
   hosts: all
   become: true
-  vars:
-    python_string: "{{ 'python3' if ansible_python_version is version('3.0.0', '>=') else 'python' }}"
-    docker_apt_release_channel: stable
-    docker_apt_repository:
-      "deb [arch=amd64] https://download.docker.com/linux/debian \
-      {{ ansible_distribution_release }} {{ docker_apt_release_channel }}"
-    docker_apt_key_url: "https://download.docker.com/linux/debian/gpg"
-    docker_apt_key_id: "9DC858229FC7DD38854AE2D88D81803C0EBFCD88"
-    docker_apt_dependencies:
-      - apt-transport-https
-      - ca-certificates
-      - curl
-      - gnupg2
-      - software-properties-common
-    docker_package_name: "docker-ce"
-    docker_daemon_name: "docker"
-    docker_python_module: "docker"
+  handlers:
+    - name: Restart docker
+      ansible.builtin.service:
+        name: docker
+        state: restarted
 
   tasks:
-    - name: Install Docker dependencies
-      ansible.builtin.apt:
-        name: "{{ docker_apt_dependencies }}"
-        state: present
-        update_cache: true
+    - name: Configure Docker daemon for DinD compatibility
+      ansible.builtin.copy:
+        content: |
+          {
+            "storage-driver": "vfs"
+          }
+        dest: /etc/docker/daemon.json
+        mode: '0644'
+      notify: Restart docker
 
-    - name: Add Docker's official GPG apt key
-      ansible.builtin.apt_key:
-        url: "{{ docker_apt_key_url }}"
-        id: "{{ docker_apt_key_id }}"
-        state: present
-
-    - name: Add Docker repository
-      ansible.builtin.apt_repository:
-        repo: "{{ docker_apt_repository }}"
-        state: present
-        update_cache: true
-
-    - name: Install Docker CE.
-      ansible.builtin.package:
-        name: "{{ docker_package_name }}"
-        state: present
-
-    - name: Ensure Docker is started and enabled at boot.
+    - name: Ensure Docker daemon is started
       ansible.builtin.service:
-        name: "{{ docker_daemon_name }}"
+        name: docker
         state: started
         enabled: true
 
-    - name: Install python dependencies
-      ansible.builtin.apt:
-        name:
-          - "{{ python_string }}-setuptools"
-          - "{{ python_string }}-pip"
-        state: present
+    - name: Flush handlers to restart Docker if needed
+      ansible.builtin.meta: flush_handlers
 
-    - name: Add Docker python module
-      ansible.builtin.pip:
-        name: "{{ docker_python_module }}"
-        state: present
-        executable: "{{ 'pip3' if python_string == 'python3' else 'pip2' }}"
+    - name: Wait for Docker daemon to be ready
+      ansible.builtin.command: docker info
+      register: docker_info
+      until: docker_info.rc == 0
+      retries: 5
+      delay: 2
+      changed_when: false

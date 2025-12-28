@@ -21,7 +21,7 @@ traefik_docker_provider:
 traefik_service_name: "traefik"
 traefik_image: "{{ traefik_image_name }}:{{ traefik_image_tag }}"
 traefik_image_name: "traefik"
-traefik_image_tag: "3.0"
+traefik_image_tag: "3.6.5"
 traefik_cli_base:
   - "--global.checknewversion={{ traefik_checknewversion }}"
   - "--global.sendanonymoususage={{ traefik_sendanonymoususage }}"
