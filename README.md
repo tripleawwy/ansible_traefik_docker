@@ -1,124 +1,258 @@
-# Ansible role containerized Traefik
+# Ansible Role: Traefik Docker
 
-<!-- TABLE OF CONTENTS -->
+[![Molecule CI](https://github.com/tripleawwy/ansible_traefik_docker/actions/workflows/molecule.yml/badge.svg)](https://github.com/tripleawwy/ansible_traefik_docker/actions/workflows/molecule.yml)
+
+An Ansible role for deploying [Traefik][traefik_url] reverse proxy as a Docker container with automatic HTTPS via Let's Encrypt.
+
 ## Table of Contents
 
-- [Ansible role containerized Traefik](#ansible-role-containerized-traefik)
-  - [Table of Contents](#table-of-contents)
-  - [About The Project](#about-the-project)
-    - [Built With](#built-with)
-  - [Getting Started](#getting-started)
-    - [Requirements](#requirements)
-    - [Role Variables](#role-variables)
-    - [Dependencies](#dependencies)
-  - [Usage](#usage)
-    - [Example Playbook](#example-playbook)
-  - [Testing](#testing)
-  - [Contributing](#contributing)
-  - [Author Information](#author-information)
-  - [License](#license)
-  - [Acknowledgements](#acknowledgements)
+- [About The Project](#about-the-project)
+- [Features](#features)
+- [Requirements](#requirements)
+- [Role Variables](#role-variables)
+- [Dependencies](#dependencies)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Testing](#testing)
+- [Contributing](#contributing)
+- [License](#license)
+- [Author Information](#author-information)
 
-<!-- ABOUT THE PROJECT -->
 ## About The Project
 
-This project aims to easily provision the reverse proxy [Traefik][traefik_url] with Ansible and Docker.
+This Ansible role provides automated deployment of Traefik v3.6.5 as a containerized reverse proxy with:
+- Automatic HTTPS certificate management via Let's Encrypt
+- Docker provider for automatic service discovery
+- HTTP to HTTPS redirection
+- Configurable dashboard and logging
+- Production-ready defaults
 
 ### Built With
 
-- [Ansible][ansible_url]
-- [VS Code][code_url]
+- [Ansible][ansible_url] - Automation platform
+- [Traefik][traefik_url] - Modern reverse proxy
+- [Docker][docker_url] - Container runtime
+- [Molecule][molecule_url] - Testing framework
 
-<!-- GETTING STARTED -->
-## Getting Started
+## Features
 
-The following instructions will guide you trough requirements needed for this Ansible role to run.
+- [x] Traefik v3.6.5 deployment
+- [x] Automatic Let's Encrypt HTTPS certificates
+- [x] Docker service discovery
+- [x] HTTP to HTTPS redirection
+- [x] Customizable entrypoints and routing
+- [x] Optional dashboard access
+- [x] Production-ready security defaults
+- [x] Fully tested with Molecule
 
-### Requirements
-The remote host needs to have Docker installed. No other requirements are necessary.
-### Role Variables
-### Dependencies
-- `ansible-core >= v2.13.5`
-- `community.docker >= v3.0.0`
+## Requirements
 
-<!-- USAGE -->
-## Usage
-You'll need to install the Ansible role.
+### Target Host Requirements
 
-- e.g. by using the requirements file.
+- Docker installed and running
+- Python 3 (for Ansible modules)
+- Systemd (optional, for service management)
 
-  ```yaml
-  # requirements.yml
-    - src: tripleawwy.traefik_docker
-      version: v1.0.0
-  ```
-  ```bash
-  ansible-galaxy install -r requirements.yml
-  ```
-- or via Ansible Galaxy directly
-  ```bash
-  ansible-galaxy install tripleawwy.traefik_docker
-  ```
+### Control Node Requirements
 
-### Example Playbook
-The following Playbook provisions Traefik with a default Traefik certificate on localhost
+- Ansible core >= 2.13.5
+- Python 3.8 or higher
+
+## Role Variables
+
+### Core Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `traefik_image_tag` | `"3.6.5"` | Traefik Docker image version |
+| `traefik_service_name` | `"traefik"` | Container and network name |
+| `traefik_source_base_path` | `"/etc/traefik"` | Configuration directory |
+| `traefik_source_acme_path` | `"/etc/traefik/acme.json"` | Let's Encrypt certificate storage |
+
+### Configuration Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `traefik_dashboard_enabled` | `"false"` | Enable Traefik dashboard |
+| `traefik_log_level` | `"ERROR"` | Logging level (DEBUG, INFO, WARN, ERROR) |
+| `traefik_checknewversion` | `"false"` | Check for Traefik updates |
+| `traefik_sendanonymoususage` | `"false"` | Send anonymous usage stats |
+
+### Network Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `traefik_ports` | `["80:80", "443:443"]` | Published ports |
+| `traefik_networks` | `[{"name": "traefik"}]` | Docker networks |
+| `traefik_api_rule` | `"Host(\`traefik.{{ inventory_hostname }}\`)"` | Dashboard routing rule |
+
+See [defaults/main.yml](defaults/main.yml) for complete variable list.
+
+## Dependencies
+
+### Ansible Collections
+
+- `community.docker` >= 3.0.0
+
+Install with:
+```bash
+ansible-galaxy collection install community.docker
+```
+
+## Installation
+
+### From Ansible Galaxy
+
+```bash
+ansible-galaxy install tripleawwy.traefik_docker
+```
+
+### Using Requirements File
+
+Create `requirements.yml`:
 ```yaml
 ---
-- name: Example
-  hosts: localhost
+roles:
+  - name: tripleawwy.traefik_docker
+    version: v1.0.0
+```
+
+Install:
+```bash
+ansible-galaxy install -r requirements.yml
+```
+
+## Usage
+
+### Basic Deployment
+
+Minimal playbook for Traefik with Let's Encrypt:
+
+```yaml
+---
+- name: Deploy Traefik
+  hosts: traefik_servers
   become: true
+
+  roles:
+    - tripleawwy.traefik_docker
+```
+
+### With Dashboard Enabled
+
+```yaml
+---
+- name: Deploy Traefik with Dashboard
+  hosts: traefik_servers
+  become: true
+
   vars:
     traefik_dashboard_enabled: "true"
-    traefik_log_level: "DEBUG"
+    traefik_log_level: "INFO"
     traefik_labels:
       traefik.enable: "true"
-      traefik.http.routers.traefik_api.rule: "{{ traefik_api_rule }}"
+      traefik.http.routers.traefik_api.rule: "Host(`traefik.example.com`)"
       traefik.http.routers.traefik_api.entrypoints: "web_secure"
       traefik.http.routers.traefik_api.service: "api@internal"
       traefik.http.routers.traefik_api.tls: "true"
-  tasks:
-    - name: "Include traefik_docker role"
-      ansible.builtin.include_role:
-        name: "tripleawwy.traefik_docker"
+
+  roles:
+    - tripleawwy.traefik_docker
 ```
 
-<!-- Testing -->
-## Testing
-Tests are done with [Molecule][molecule_url] with the help of [Vagrant][vagrant_url] and [Virtual Box][vb_url]. You can find more detailed requirements [here][molecule_deps].
+### Custom Configuration
 
-If your test environment is set up:
+```yaml
+---
+- name: Deploy Traefik with Custom Settings
+  hosts: traefik_servers
+  become: true
+
+  vars:
+    traefik_image_tag: "3.6.5"
+    traefik_dashboard_enabled: "true"
+    traefik_log_level: "DEBUG"
+    traefik_source_base_path: "/opt/traefik"
+
+    # Additional CLI commands
+    traefik_cli_commands_extension:
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.entrypoint=metrics"
+
+    # Custom ports
+    traefik_ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Metrics endpoint
+
+  roles:
+    - tripleawwy.traefik_docker
+```
+
+## Testing
+
+This role is tested using [Molecule][molecule_url] with Docker-in-Docker support.
+
+### Quick Test
+
 ```bash
+# Set up testing environment
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Install collections
+ansible-galaxy collection install community.docker community.general
+
+# Run tests
 molecule test
 ```
 
-<!-- CONTRIBUTING -->
+For detailed testing instructions, see [molecule/default/README.md](molecule/default/README.md).
+
+### CI/CD
+
+Automated testing via GitHub Actions runs on every push and pull request. See [.github/workflows/molecule.yml](.github/workflows/molecule.yml).
+
 ## Contributing
-Feel free to open issues, pull requests or ask me anything directly!
 
-<!-- AUTHOR INFORMATION -->
-## Author Information
-[tripleawwy](https://github.com/tripleawwy)
+Contributions are welcome! Please:
 
-<!-- License -->
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Follow Ansible best practices
+- Maintain ansible-lint production profile compliance
+- Add tests for new features
+- Update documentation
+
 ## License
-[MIT][mit_url]
 
-Detailed information: https://choosealicense.com/licenses/mit/
+[MIT License][mit_url]
 
-<!-- ACKNOWLEDGEMENTS -->
+See [LICENSE](LICENSE) for details.
+
+## Author Information
+
+**tripleawwy**
+- GitHub: [@tripleawwy](https://github.com/tripleawwy)
+- Role: [tripleawwy.traefik_docker](https://galaxy.ansible.com/tripleawwy/traefik_docker)
+
 ## Acknowledgements
 
-- [markdown-guide](https://about.gitlab.com/handbook/product/technical-writing/markdown-guide/#colorful-sections)
-- [readme-help](https://github.com/othneildrew/Best-README-Template)
+- [Traefik](https://traefik.io/) - The Cloud Native Application Proxy
+- [Molecule](https://molecule.readthedocs.io/) - Ansible testing framework
+- [Ansible Community](https://ansible.com/) - Community collections
+- [Docker](https://www.docker.com/) - Container platform
 
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-
+<!-- MARKDOWN LINKS -->
 [traefik_url]: https://traefik.io/
 [ansible_url]: https://www.ansible.com/
-[code_url]: https://code.visualstudio.com/
-[molecule_url]: https://molecule.readthedocs.io/en/latest/ci.html
-[vagrant_url]: https://www.vagrantup.com/
-[vb_url]: https://www.virtualbox.org/
-[molecule_deps]: molecule/default/INSTALL.rst
+[docker_url]: https://www.docker.com/
+[molecule_url]: https://molecule.readthedocs.io/
 [mit_url]: https://spdx.org/licenses/MIT.html
