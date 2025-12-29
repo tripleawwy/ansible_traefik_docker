@@ -22,6 +22,29 @@ traefik_service_name: "traefik"
 traefik_image: "{{ traefik_image_name }}:{{ traefik_image_tag }}"
 traefik_image_name: "traefik"
 traefik_image_tag: "3.6.5"
+# ACME challenge configuration
+# Challenge type: "http" or "dns"
+traefik_acme_challenge_type: "http"
+
+# DNS challenge provider (e.g., cloudflare, route53, digitalocean, ovh)
+# See https://go-acme.github.io/lego/dns/ for full list
+traefik_acme_dns_provider: ""
+
+# DNS challenge environment variables
+# These are provider-specific credentials required for DNS challenge
+# Example for Cloudflare:
+#   CF_API_EMAIL: your@email.com
+#   CF_DNS_API_TOKEN: your_api_token
+# Example for DigitalOcean:
+#   DO_AUTH_TOKEN: your_auth_token
+traefik_acme_dns_env: {}
+
+# ACME email for Let's Encrypt notifications
+traefik_acme_email: ""
+
+# Delay before DNS record verification (in seconds)
+traefik_acme_dns_delay_before_check: 0
+
 traefik_cli_base:
   - "--global.checknewversion={{ traefik_checknewversion }}"
   - "--global.sendanonymoususage={{ traefik_sendanonymoususage }}"
@@ -38,14 +61,36 @@ traefik_cli_base:
   - "--entrypoints.web_secure.http.tls=true"
   - "--entrypoints.web_secure.http.tls.certresolver=live"
   - "--certificatesresolvers.live=true"
+
+# HTTP challenge configuration (default)
+traefik_cli_http_challenge:
   - "--certificatesresolvers.live.acme.httpchallenge=true"
   - "--certificatesresolvers.live.acme.httpchallenge.entrypoint=web"
+
+# DNS challenge configuration
+traefik_cli_dns_challenge:
+  - "--certificatesresolvers.live.acme.dnschallenge=true"
+  - "--certificatesresolvers.live.acme.dnschallenge.provider={{ traefik_acme_dns_provider }}"
+  - "--certificatesresolvers.live.acme.dnschallenge.delaybeforecheck={{ traefik_acme_dns_delay_before_check }}"
+
+# Email configuration for ACME (optional but recommended)
+traefik_cli_acme_email: >-
+  {{
+    ['--certificatesresolvers.live.acme.email=' + traefik_acme_email]
+    if traefik_acme_email else []
+  }}
+
+# Select challenge type based on configuration
+traefik_cli_challenge: "{{
+  traefik_cli_dns_challenge if traefik_acme_challenge_type == 'dns'
+  else traefik_cli_http_challenge
+  }}"
 
 # https://doc.traefik.io/traefik/reference/static-configuration/cli/
 traefik_cli_commands_extension: []
 traefik_custom_cli_commands: []
 traefik_cli_commands: "{{
-  traefik_cli_base + traefik_cli_commands_extension
+  traefik_cli_base + traefik_cli_challenge + traefik_cli_acme_email + traefik_cli_commands_extension
   if traefik_custom_cli_commands | length == 0 else traefik_custom_cli_commands
   }}"
 

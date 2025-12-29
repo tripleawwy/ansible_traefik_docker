@@ -22,6 +22,7 @@
     mounts: "{{ traefik_mounts }}"
     command: "{{ traefik_cli_commands }}"
     labels: "{{ traefik_labels }}"
+    env: "{{ traefik_acme_dns_env if traefik_acme_challenge_type == 'dns' else {} }}"
     comparisons:
       '*': strict
       labels: allow_more_present

@@ -78,6 +78,16 @@ This Ansible role provides automated deployment of Traefik v3.6.5 as a container
 | `traefik_checknewversion` | `"false"` | Check for Traefik updates |
 | `traefik_sendanonymoususage` | `"false"` | Send anonymous usage stats |
 
+### ACME / Let's Encrypt Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `traefik_acme_challenge_type` | `"http"` | Challenge type: `"http"` or `"dns"` |
+| `traefik_acme_dns_provider` | `""` | DNS provider (e.g., `cloudflare`, `route53`, `digitalocean`, `ovh`) |
+| `traefik_acme_dns_env` | `{}` | DNS provider environment variables (credentials) |
+| `traefik_acme_email` | `""` | Email for Let's Encrypt notifications (optional but recommended) |
+| `traefik_acme_dns_delay_before_check` | `0` | Delay before DNS record verification (seconds) |
+
 ### Network Variables
 
 | Variable | Default | Description |
@@ -87,6 +97,40 @@ This Ansible role provides automated deployment of Traefik v3.6.5 as a container
 | `traefik_api_rule` | `"Host(\`traefik.{{ inventory_hostname }}\`)"` | Dashboard routing rule |
 
 See [defaults/main.yml](defaults/main.yml) for complete variable list.
+
+### Supported DNS Providers
+
+This role supports DNS challenge for Let's Encrypt certificate generation, which is required for wildcard certificates and useful when port 80 is not accessible.
+
+**Common DNS Providers:**
+
+| Provider | Value for `traefik_acme_dns_provider` | Required Environment Variables |
+|----------|---------------------------------------|-------------------------------|
+| **Cloudflare** | `cloudflare` | `CF_API_EMAIL`, `CF_DNS_API_TOKEN` or `CF_API_KEY` |
+| **AWS Route53** | `route53` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` |
+| **DigitalOcean** | `digitalocean` | `DO_AUTH_TOKEN` |
+| **Google Cloud DNS** | `gcloud` | `GCE_PROJECT`, `GCE_SERVICE_ACCOUNT_FILE` |
+| **Azure DNS** | `azure` | `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP` |
+| **OVH** | `ovh` | `OVH_ENDPOINT`, `OVH_APPLICATION_KEY`, `OVH_APPLICATION_SECRET`, `OVH_CONSUMER_KEY` |
+| **Hetzner** | `hetzner` | `HETZNER_API_KEY` |
+| **Linode** | `linode` | `LINODE_TOKEN` |
+| **Namecheap** | `namecheap` | `NAMECHEAP_API_USER`, `NAMECHEAP_API_KEY` |
+| **GoDaddy** | `godaddy` | `GODADDY_API_KEY`, `GODADDY_API_SECRET` |
+
+**Full List:** See [Lego DNS Providers](https://go-acme.github.io/lego/dns/) for complete list of 100+ supported providers.
+
+**Security Note:** Use Ansible Vault to encrypt sensitive DNS provider credentials:
+
+```yaml
+# vars/secrets.yml (encrypted with ansible-vault)
+vault_cf_api_token: "your-secret-token"
+
+# playbook.yml
+vars:
+  traefik_acme_dns_env:
+    CF_API_EMAIL: "your@email.com"
+    CF_DNS_API_TOKEN: "{{ vault_cf_api_token }}"
+```
 
 ## Dependencies
 
@@ -155,6 +199,67 @@ Minimal playbook for Traefik with Let's Encrypt:
       traefik.http.routers.traefik_api.entrypoints: "web_secure"
       traefik.http.routers.traefik_api.service: "api@internal"
       traefik.http.routers.traefik_api.tls: "true"
+
+  roles:
+    - tripleawwy.traefik_docker
+```
+
+### DNS Challenge with Cloudflare
+
+```yaml
+---
+- name: Deploy Traefik with DNS Challenge
+  hosts: traefik_servers
+  become: true
+
+  vars:
+    traefik_acme_challenge_type: "dns"
+    traefik_acme_dns_provider: "cloudflare"
+    traefik_acme_email: "admin@example.com"
+    traefik_acme_dns_env:
+      CF_API_EMAIL: "your-cloudflare@email.com"
+      CF_DNS_API_TOKEN: "your-cloudflare-api-token"
+
+  roles:
+    - tripleawwy.traefik_docker
+```
+
+### DNS Challenge with Route53
+
+```yaml
+---
+- name: Deploy Traefik with AWS Route53 DNS Challenge
+  hosts: traefik_servers
+  become: true
+
+  vars:
+    traefik_acme_challenge_type: "dns"
+    traefik_acme_dns_provider: "route53"
+    traefik_acme_email: "admin@example.com"
+    traefik_acme_dns_env:
+      AWS_ACCESS_KEY_ID: "your-aws-access-key"
+      AWS_SECRET_ACCESS_KEY: "your-aws-secret-key"
+      AWS_REGION: "us-east-1"
+    traefik_acme_dns_delay_before_check: 60  # AWS propagation delay
+
+  roles:
+    - tripleawwy.traefik_docker
+```
+
+### DNS Challenge with DigitalOcean
+
+```yaml
+---
+- name: Deploy Traefik with DigitalOcean DNS Challenge
+  hosts: traefik_servers
+  become: true
+
+  vars:
+    traefik_acme_challenge_type: "dns"
+    traefik_acme_dns_provider: "digitalocean"
+    traefik_acme_email: "admin@example.com"
+    traefik_acme_dns_env:
+      DO_AUTH_TOKEN: "your-digitalocean-auth-token"
 
   roles:
     - tripleawwy.traefik_docker
