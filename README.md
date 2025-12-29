@@ -82,9 +82,11 @@ This Ansible role provides automated deployment of Traefik v3.6.5 as a container
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `traefik_certresolver_name` | `"live"` | Certificate resolver name (referenced in entrypoints and labels) |
 | `traefik_acme_challenge_type` | `"http"` | Challenge type: `"http"` or `"dns"` |
 | `traefik_acme_dns_provider` | `""` | DNS provider (e.g., `cloudflare`, `route53`, `digitalocean`, `ovh`) |
 | `traefik_acme_dns_env` | `{}` | DNS provider environment variables (credentials) |
+| `traefik_acme_dns_resolvers` | `[]` | Custom DNS resolvers for validation (e.g., `["1.1.1.1:53", "8.8.8.8:53"]`) |
 | `traefik_acme_email` | `""` | Email for Let's Encrypt notifications (optional but recommended) |
 | `traefik_acme_dns_delay_before_check` | `0` | Delay before DNS record verification (seconds) |
 
@@ -260,6 +262,33 @@ Minimal playbook for Traefik with Let's Encrypt:
     traefik_acme_email: "admin@example.com"
     traefik_acme_dns_env:
       DO_AUTH_TOKEN: "your-digitalocean-auth-token"
+
+  roles:
+    - tripleawwy.traefik_docker
+```
+
+### Custom Certificate Resolver Name and DNS Resolvers
+
+```yaml
+---
+- name: Deploy Traefik with Custom Resolver Name and DNS Servers
+  hosts: traefik_servers
+  become: true
+
+  vars:
+    # Match resolver name to provider for semantic clarity
+    traefik_certresolver_name: "hetzner"
+    traefik_acme_challenge_type: "dns"
+    traefik_acme_dns_provider: "hetzner"
+    traefik_acme_email: "admin@example.com"
+
+    # Custom DNS resolvers for validation
+    traefik_acme_dns_resolvers:
+      - "1.1.1.1:53"
+      - "8.8.8.8:53"
+
+    traefik_acme_dns_env:
+      HETZNER_API_KEY: "your-hetzner-api-key"
 
   roles:
     - tripleawwy.traefik_docker

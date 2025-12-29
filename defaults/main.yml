@@ -23,6 +23,9 @@ traefik_image: "{{ traefik_image_name }}:{{ traefik_image_tag }}"
 traefik_image_name: "traefik"
 traefik_image_tag: "3.6.5"
 # ACME challenge configuration
+# Certificate resolver name (referenced in entrypoints and labels)
+traefik_certresolver_name: "live"
+
 # Challenge type: "http" or "dns"
 traefik_acme_challenge_type: "http"
 
@@ -38,6 +41,11 @@ traefik_acme_dns_provider: ""
 # Example for DigitalOcean:
 #   DO_AUTH_TOKEN: your_auth_token
 traefik_acme_dns_env: {}
+
+# Custom DNS resolvers for DNS challenge validation
+# Empty list uses provider defaults
+# Example: ["1.1.1.1:53", "8.8.8.8:53"]
+traefik_acme_dns_resolvers: []
 
 # ACME email for Let's Encrypt notifications
 traefik_acme_email: ""
@@ -59,24 +67,42 @@ traefik_cli_base:
   - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
   - "--entrypoints.web_secure.address=:443"
   - "--entrypoints.web_secure.http.tls=true"
-  - "--entrypoints.web_secure.http.tls.certresolver=live"
-  - "--certificatesresolvers.live=true"
+  - "--entrypoints.web_secure.http.tls.certresolver={{ traefik_certresolver_name }}"
+  - "--certificatesresolvers.{{ traefik_certresolver_name }}=true"
 
 # HTTP challenge configuration (default)
 traefik_cli_http_challenge:
-  - "--certificatesresolvers.live.acme.httpchallenge=true"
-  - "--certificatesresolvers.live.acme.httpchallenge.entrypoint=web"
+  - "--certificatesresolvers.{{ traefik_certresolver_name }}.acme.httpchallenge=true"
+  - >-
+    --certificatesresolvers.{{ traefik_certresolver_name }}.acme.httpchallenge.entrypoint=web
 
 # DNS challenge configuration
-traefik_cli_dns_challenge:
-  - "--certificatesresolvers.live.acme.dnschallenge=true"
-  - "--certificatesresolvers.live.acme.dnschallenge.provider={{ traefik_acme_dns_provider }}"
-  - "--certificatesresolvers.live.acme.dnschallenge.delaybeforecheck={{ traefik_acme_dns_delay_before_check }}"
+traefik_cli_dns_challenge_base:
+  - "--certificatesresolvers.{{ traefik_certresolver_name }}.acme.dnschallenge=true"
+  - >-
+    --certificatesresolvers.{{ traefik_certresolver_name }}.acme.dnschallenge.provider={{
+    traefik_acme_dns_provider }}
+  - >-
+    --certificatesresolvers.{{ traefik_certresolver_name }}.acme.dnschallenge.delaybeforecheck={{
+    traefik_acme_dns_delay_before_check }}
+
+# DNS challenge custom resolvers (optional)
+traefik_cli_dns_challenge_resolvers: >-
+  {{
+    ['--certificatesresolvers.' + traefik_certresolver_name +
+    '.acme.dnschallenge.resolvers=' + (traefik_acme_dns_resolvers | join(','))]
+    if traefik_acme_dns_resolvers | length > 0 else []
+  }}
+
+# Combined DNS challenge configuration
+traefik_cli_dns_challenge: "{{
+  traefik_cli_dns_challenge_base + traefik_cli_dns_challenge_resolvers
+  }}"
 
 # Email configuration for ACME (optional but recommended)
 traefik_cli_acme_email: >-
   {{
-    ['--certificatesresolvers.live.acme.email=' + traefik_acme_email]
+    ['--certificatesresolvers.' + traefik_certresolver_name + '.acme.email=' + traefik_acme_email]
     if traefik_acme_email else []
   }}
 
@@ -107,6 +133,7 @@ traefik_labels:
   traefik.http.routers.traefik_api.rule: "{{ traefik_api_rule }}"
   traefik.http.routers.traefik_api.entrypoints: "web_secure"
   traefik.http.routers.traefik_api.service: "api@internal"
+  traefik.http.routers.traefik_api.tls.certresolver: "{{ traefik_certresolver_name }}"
 
 traefik_mounts:
   - source: /var/run/docker.sock
